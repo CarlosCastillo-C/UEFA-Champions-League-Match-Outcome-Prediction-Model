@@ -1,0 +1,453 @@
+---
+title: UEFA Champions League Match Outcome Prediction Model
+format:
+  html:
+    toc: true
+    toc-location: left
+    self-contained: true
+---
+
+
+Packages and Imports 
+```{python}
+
+import pandas as pd
+import pyarrow.parquet as pq
+import pyarrow as pa
+import os
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+import numpy as np
+import pandas as pd
+import sys
+import os
+import xgboost as xgb 
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import StackingClassifier
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import shap
+
+```
+
+UCL League Scores and their XGS and scores
+
+```{python}
+UCL_League_Scores = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/UCL_Scores_2026.csv')
+UCL_XG_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/UCL_XG_2023.csv')
+UCL_XG_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/UCL_XG_2024.csv')
+UCL_XG_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/UCL_XG_2025.csv')
+UCL_2025_WL = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/UCL_2025_Wins_and_Losses.csv')
+```
+
+EPL league tables
+```{python}
+EPL_understat_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/EPL_understat_2023.csv', sep=';')
+EPL_understat_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/EPL_understat_2024.csv', sep=';')
+EPL_understat_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/EPL_understat_2025.csv', sep=';')
+```
+
+LaLiga league tables
+```{python}
+LaLiga_understat_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/LaLiga_understat_2023.csv', sep=';')
+LaLiga_understat_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/LaLiga_understat_2024.csv', sep=';')
+LaLiga_understat_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/LaLiga_understat_2025.csv', sep=';')
+```
+
+Bundesliga league tables
+```{python}
+Bundesliga_understat_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Bundesliga_understat_2023.csv', sep=';')
+Bundesliga_understat_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Bundesliga_understat_2024.csv', sep=';')
+Bundesliga_understat_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Bundesliga_understat_2025.csv', sep=';')
+```
+
+Serie A league tables
+```{python}
+Serie_A_understat_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/SerieA_understat_2023.csv', sep=';')
+Serie_A_understat_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/SerieA_understat_2024.csv', sep=';')
+Serie_A_understat_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/SerieA_understat_2025.csv', sep=';')
+```
+
+Ligue 1 league tables
+```{python}
+Ligue_1_understat_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Ligue_1_understat_2023.csv', sep=';')
+Ligue_1_understat_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Ligue_1_understat_2024.csv', sep=';')
+Ligue_1_understat_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Ligue_1_understat_2025.csv', sep=';')
+```
+
+Norway Eliteserien league tables and play by play data
+```{python}
+Norway_pbp = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Norway_play_by_play.csv')
+Norway_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Norway_2023.csv')
+Norway_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Norway_2024.csv')
+Norway_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Norway_2025.csv')
+```
+
+Portugal Primeira Liga data league tables and play by play data
+```{python}
+Portugal_pbp = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Portugal_play_by_play.csv')
+Portugal_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Portugal_2023.csv')
+Portugal_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Portugal_2024.csv')
+Portugal_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Portugal_2025.csv')
+```
+
+Turkey Super Lig league tables and play by play data
+```{python}
+Turkey_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Turkey_2023.csv')
+Turkey_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Turkey_2024.csv')
+Turkey_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/League_Tables/Turkey_2025.csv')
+```
+
+Renaming columns for consistency and better to model later on. This is because the 'ga' column in the understat data represents 'goals against', and having a consistent naming convention across all datasets will make it easier to merge and analyze the data later on.
+
+```{python}
+EPL_understat_2023.rename(columns={'ga': 'goals_against'}, inplace=True)
+EPL_understat_2024.rename(columns={'ga': 'goals_against'}, inplace=True)
+EPL_understat_2025.rename(columns={'ga': 'goals_against'}, inplace=True)
+
+LaLiga_understat_2023.rename(columns={'ga': 'goals_against'}, inplace=True)
+LaLiga_understat_2024.rename(columns={'ga': 'goals_against'}, inplace=True)
+LaLiga_understat_2025.rename(columns={'ga': 'goals_against'}, inplace=True)
+
+Bundesliga_understat_2023.rename(columns={'ga': 'goals_against'}, inplace=True)
+Bundesliga_understat_2024.rename(columns={'ga': 'goals_against'}, inplace=True)
+Bundesliga_understat_2025.rename(columns={'ga': 'goals_against'}, inplace=True)
+
+Serie_A_understat_2023.rename(columns={'ga': 'goals_against'}, inplace=True)
+Serie_A_understat_2024.rename(columns={'ga': 'goals_against'}, inplace=True)
+Serie_A_understat_2025.rename(columns={'ga': 'goals_against'}, inplace=True)
+
+Ligue_1_understat_2023.rename(columns={'ga': 'goals_against'}, inplace=True)
+Ligue_1_understat_2024.rename(columns={'ga': 'goals_against'}, inplace=True)
+Ligue_1_understat_2025.rename(columns={'ga': 'goals_against'}, inplace=True)
+
+Turkey_2023[['goals_for', 'goals_against']] = Turkey_2023['GF-GA'].str.split('-', expand=True).astype(int)
+Turkey_2024[['goals_for', 'goals_against']] = Turkey_2024['GF-GA'].str.split('-', expand=True).astype(int)
+Turkey_2025[['goals_for', 'goals_against']] = Turkey_2025['GF-GA'].str.split('-', expand=True).astype(int)
+
+cols = ['Position', 'Team', 'PL', 'W', 'D', 'L', 'goals_for', 'goals_against',
+        'GD', 'PTS', 'xG', 'xGA', 'xPTS']
+Turkey_2023 = Turkey_2023[cols]
+Turkey_2024 = Turkey_2024[cols]
+Turkey_2025 = Turkey_2025[cols]
+```
+
+Renaming columns for consistency across all datasets. 
+```{python}
+rename_map = {
+    'team': 'team_name',
+    'Team': 'team_name',
+    'number': 'rank',
+    'Position': 'rank',
+    'Rank': 'rank',
+    'matches': 'played',
+    'PL': 'played',
+    'Played': 'played',
+    'loses': 'losses',
+    'L': 'losses',
+    'W': 'wins',
+    'D': 'draws',
+    'goals': 'goals_for',
+    'PTS': 'points',
+    'xG': 'total_xg',
+    'xGA': 'total_xg_conceded',
+    'xPTS': 'xpts',
+    'GD': 'goal_difference',
+    'total_xg_for': 'total_xg',
+    'total_xg_against': 'total_xg_conceded',
+    'goals_against': 'goals_conceded',
+    'season_year': 'season'
+}
+
+dataframes = [EPL_understat_2023, EPL_understat_2024, EPL_understat_2025,
+              LaLiga_understat_2023, LaLiga_understat_2024, LaLiga_understat_2025,
+              Bundesliga_understat_2023, Bundesliga_understat_2024, Bundesliga_understat_2025,
+              Serie_A_understat_2023, Serie_A_understat_2024, Serie_A_understat_2025,
+              Ligue_1_understat_2023, Ligue_1_understat_2024, Ligue_1_understat_2025,
+              Turkey_2023, Turkey_2024, Turkey_2025,
+              Portugal_2023, Portugal_2024, Portugal_2025,
+              Norway_2023, Norway_2024, Norway_2025]
+
+dataframes = [df.rename(columns=rename_map) for df in dataframes]
+
+(EPL_understat_2023, EPL_understat_2024, EPL_understat_2025,
+ LaLiga_understat_2023, LaLiga_understat_2024, LaLiga_understat_2025,
+ Bundesliga_understat_2023, Bundesliga_understat_2024, Bundesliga_understat_2025,
+ Serie_A_understat_2023, Serie_A_understat_2024, Serie_A_understat_2025,
+ Ligue_1_understat_2023, Ligue_1_understat_2024, Ligue_1_understat_2025,
+ Turkey_2023, Turkey_2024, Turkey_2025,
+ Portugal_2023, Portugal_2024, Portugal_2025,
+ Norway_2023, Norway_2024, Norway_2025) = dataframes
+
+```
+
+Adding a new column for goal difference in each league table. 
+
+```{python}
+Europe_dataframes =[EPL_understat_2023, EPL_understat_2024, EPL_understat_2025,
+              LaLiga_understat_2023, LaLiga_understat_2024, LaLiga_understat_2025,
+              Bundesliga_understat_2023, Bundesliga_understat_2024, Bundesliga_understat_2025,
+              Serie_A_understat_2023, Serie_A_understat_2024, Serie_A_understat_2025,
+              Ligue_1_understat_2023, Ligue_1_understat_2024, Ligue_1_understat_2025]
+
+Europe_dataframes = [df.assign(goal_difference=df['goals_for'] - df['goals_conceded']) for df in Europe_dataframes]
+
+[EPL_understat_2023, EPL_understat_2024, EPL_understat_2025,
+              LaLiga_understat_2023, LaLiga_understat_2024, LaLiga_understat_2025,
+              Bundesliga_understat_2023, Bundesliga_understat_2024, Bundesliga_understat_2025,
+              Serie_A_understat_2023, Serie_A_understat_2024, Serie_A_understat_2025,
+              Ligue_1_understat_2023, Ligue_1_understat_2024, Ligue_1_understat_2025] = Europe_dataframes
+
+```
+
+Grouping the stats to get more stats for UCL 2023
+```{python}
+
+UCL_XG_2023['matchDate'] = pd.to_datetime(UCL_XG_2023['matchDate'])
+UCL_XG_2023 = UCL_XG_2023[UCL_XG_2023['matchDate'] >= '2023-09-08']
+
+UCL_XG_2023_home_totals = UCL_XG_2023.groupby('homeTeam')[['homeScore', 'homeXG']].sum().reset_index().rename(columns={'homeTeam': 'Team', 'homeScore': 'Goals', 'homeXG': 'TotalXG'})
+UCL_XG_2023_away_totals = UCL_XG_2023.groupby('awayTeam')[['awayScore', 'awayXG']].sum().reset_index().rename(columns={'awayTeam': 'Team', 'awayScore': 'Goals', 'awayXG': 'TotalXG'})
+UCL_XG_2023_totals = pd.merge(UCL_XG_2023_home_totals, UCL_XG_2023_away_totals, on='Team', how='outer')
+UCL_XG_2023_totals['total_goals'] = UCL_XG_2023_totals['Goals_x'].fillna(0) + UCL_XG_2023_totals['Goals_y'].fillna(0)
+UCL_XG_2023_totals['total_xg'] = UCL_XG_2023_totals['TotalXG_x'].fillna(0) + UCL_XG_2023_totals['TotalXG_y'].fillna(0)
+UCL_XG_2023_totals = UCL_XG_2023_totals.drop(columns=['Goals_x', 'TotalXG_x', 'Goals_y', 'TotalXG_y'])
+
+UCL_XG_2023_home_conceded = UCL_XG_2023.groupby('homeTeam')[['awayScore']].sum().reset_index().rename(columns={'homeTeam': 'Team', 'awayScore': 'c1'})
+UCL_XG_2023_away_conceded = UCL_XG_2023.groupby('awayTeam')[['homeScore']].sum().reset_index().rename(columns={'awayTeam': 'Team', 'homeScore': 'c2'})
+UCL_XG_2023_conceded = pd.merge(UCL_XG_2023_home_conceded, UCL_XG_2023_away_conceded, on='Team', how='outer')
+UCL_XG_2023_conceded['total_conceded'] = UCL_XG_2023_conceded['c1'].fillna(0) + UCL_XG_2023_conceded['c2'].fillna(0)
+UCL_XG_2023_conceded = UCL_XG_2023_conceded.drop(columns=['c1', 'c2'])
+
+UCL_XG_2023_home_xgc = UCL_XG_2023.groupby('homeTeam')[['awayXG']].sum().reset_index().rename(columns={'homeTeam': 'Team', 'awayXG': 'xgc1'})
+UCL_XG_2023_away_xgc = UCL_XG_2023.groupby('awayTeam')[['homeXG']].sum().reset_index().rename(columns={'awayTeam': 'Team', 'homeXG': 'xgc2'})
+UCL_XG_2023_xg_conceded = pd.merge(UCL_XG_2023_home_xgc, UCL_XG_2023_away_xgc, on='Team', how='outer')
+UCL_XG_2023_xg_conceded['total_xg_conceded'] = UCL_XG_2023_xg_conceded['xgc1'].fillna(0) + UCL_XG_2023_xg_conceded['xgc2'].fillna(0)
+UCL_XG_2023_xg_conceded = UCL_XG_2023_xg_conceded.drop(columns=['xgc1', 'xgc2'])
+
+UCL_XG_2023_totals = UCL_XG_2023_totals.merge(UCL_XG_2023_conceded, on='Team').merge(UCL_XG_2023_xg_conceded, on='Team')
+UCL_XG_2023_totals['xg_diff'] = UCL_XG_2023_totals['total_xg'] - UCL_XG_2023_totals['total_xg_conceded']
+UCL_XG_2023_totals = UCL_XG_2023_totals[UCL_XG_2023_totals['total_xg'] != 0].reset_index(drop=True)
+
+UCL_XG_2023_filtered = UCL_XG_2023[UCL_XG_2023['matchDate'] >= '2023-09-01']
+UCL_XG_2023_home_wins = UCL_XG_2023_filtered[UCL_XG_2023_filtered['homeScore'] > 
+                                             UCL_XG_2023_filtered['awayScore']].groupby('homeTeam').size().reset_index(name='home_wins').rename(columns={'homeTeam': 'Team'})
+UCL_XG_2023_away_wins = UCL_XG_2023_filtered[UCL_XG_2023_filtered['awayScore'] > 
+                                             UCL_XG_2023_filtered['homeScore']].groupby('awayTeam').size().reset_index(name='away_wins').rename(columns={'awayTeam': 'Team'})
+UCL_XG_2023_home_losses = UCL_XG_2023_filtered[UCL_XG_2023_filtered['homeScore'] < 
+                                               UCL_XG_2023_filtered['awayScore']].groupby('homeTeam').size().reset_index(name='home_losses').rename(columns={'homeTeam': 'Team'})
+UCL_XG_2023_away_losses = UCL_XG_2023_filtered[UCL_XG_2023_filtered['awayScore'] < 
+                                               UCL_XG_2023_filtered['homeScore']].groupby('awayTeam').size().reset_index(name='away_losses').rename(columns={'awayTeam': 'Team'})
+UCL_XG_2023_home_draws = UCL_XG_2023_filtered[UCL_XG_2023_filtered['homeScore'] == 
+                                              UCL_XG_2023_filtered['awayScore']].groupby('homeTeam').size().reset_index(name='home_draws').rename(columns={'homeTeam': 'Team'})
+UCL_XG_2023_away_draws = UCL_XG_2023_filtered[UCL_XG_2023_filtered['awayScore'] == 
+                                              UCL_XG_2023_filtered['homeScore']].groupby('awayTeam').size().reset_index(name='away_draws').rename(columns={'awayTeam': 'Team'})
+
+UCL_XG_2023_wld = (UCL_XG_2023_home_wins.merge(UCL_XG_2023_away_wins, on='Team', how='outer')
+                                        .merge(UCL_XG_2023_home_losses, on='Team', how='outer')
+                                        .merge(UCL_XG_2023_away_losses, on='Team', how='outer')
+                                        .merge(UCL_XG_2023_home_draws, on='Team', how='outer')
+                                        .merge(UCL_XG_2023_away_draws, on='Team', how='outer')).fillna(0)
+UCL_XG_2023_wld['wins'] = UCL_XG_2023_wld['home_wins'] + UCL_XG_2023_wld['away_wins']
+UCL_XG_2023_wld['losses'] = UCL_XG_2023_wld['home_losses'] + UCL_XG_2023_wld['away_losses']
+UCL_XG_2023_wld['draws'] = UCL_XG_2023_wld['home_draws'] + UCL_XG_2023_wld['away_draws']
+UCL_XG_2023_wld = UCL_XG_2023_wld[['Team', 'wins', 'losses', 'draws']]
+UCL_2023_totals = UCL_XG_2023_totals.merge(UCL_XG_2023_wld, on='Team', how='outer')
+
+```
+
+Grouping the stats to get more stats for UCL 2024
+```{python}
+UCL_XG_2024['matchDate'] = pd.to_datetime(UCL_XG_2024['matchDate'])
+UCL_XG_2024 = UCL_XG_2024[UCL_XG_2024['matchDate'] >= '2024-08-08']
+
+UCL_XG_2024_home_totals = UCL_XG_2024.groupby('homeTeam')[['homeScore', 'homeXG']].sum().reset_index().rename(columns={'homeTeam': 'Team', 'homeScore': 'Goals', 'homeXG': 'TotalXG'})
+UCL_XG_2024_away_totals = UCL_XG_2024.groupby('awayTeam')[['awayScore', 'awayXG']].sum().reset_index().rename(columns={'awayTeam': 'Team', 'awayScore': 'Goals', 'awayXG': 'TotalXG'})
+UCL_XG_2024_totals = pd.merge(UCL_XG_2024_home_totals, UCL_XG_2024_away_totals, on='Team', how='outer')
+UCL_XG_2024_totals['total_goals'] = UCL_XG_2024_totals['Goals_x'].fillna(0) + UCL_XG_2024_totals['Goals_y'].fillna(0)
+UCL_XG_2024_totals['total_xg'] = UCL_XG_2024_totals['TotalXG_x'].fillna(0) + UCL_XG_2024_totals['TotalXG_y'].fillna(0)
+UCL_XG_2024_totals = UCL_XG_2024_totals.drop(columns=['Goals_x', 'TotalXG_x', 'Goals_y', 'TotalXG_y'])
+
+UCL_XG_2024_home_conceded = UCL_XG_2024.groupby('homeTeam')[['awayScore']].sum().reset_index().rename(columns={'homeTeam': 'Team', 'awayScore': 'c1'})
+UCL_XG_2024_away_conceded = UCL_XG_2024.groupby('awayTeam')[['homeScore']].sum().reset_index().rename(columns={'awayTeam': 'Team', 'homeScore': 'c2'})
+UCL_XG_2024_conceded = pd.merge(UCL_XG_2024_home_conceded, UCL_XG_2024_away_conceded, on='Team', how='outer')
+UCL_XG_2024_conceded['total_conceded'] = UCL_XG_2024_conceded['c1'].fillna(0) + UCL_XG_2024_conceded['c2'].fillna(0)
+UCL_XG_2024_conceded = UCL_XG_2024_conceded.drop(columns=['c1', 'c2'])
+
+UCL_XG_2024_home_xgc = UCL_XG_2024.groupby('homeTeam')[['awayXG']].sum().reset_index().rename(columns={'homeTeam': 'Team', 'awayXG': 'xgc1'})
+UCL_XG_2024_away_xgc = UCL_XG_2024.groupby('awayTeam')[['homeXG']].sum().reset_index().rename(columns={'awayTeam': 'Team', 'homeXG': 'xgc2'})
+UCL_XG_2024_xg_conceded = pd.merge(UCL_XG_2024_home_xgc, UCL_XG_2024_away_xgc, on='Team', how='outer')
+UCL_XG_2024_xg_conceded['total_xg_conceded'] = UCL_XG_2024_xg_conceded['xgc1'].fillna(0) + UCL_XG_2024_xg_conceded['xgc2'].fillna(0)
+UCL_XG_2024_xg_conceded = UCL_XG_2024_xg_conceded.drop(columns=['xgc1', 'xgc2'])
+
+UCL_XG_2024_totals = UCL_XG_2024_totals.merge(UCL_XG_2024_conceded, on='Team').merge(UCL_XG_2024_xg_conceded, on='Team')
+UCL_XG_2024_totals['xg_diff'] = UCL_XG_2024_totals['total_xg'] - UCL_XG_2024_totals['total_xg_conceded']
+UCL_XG_2024_totals = UCL_XG_2024_totals[UCL_XG_2024_totals['total_xg'] != 0].reset_index(drop=True)
+
+UCL_XG_2024_filtered = UCL_XG_2024[UCL_XG_2024['matchDate'] >= '2024-09-01']
+UCL_XG_2024_home_wins = UCL_XG_2024_filtered[UCL_XG_2024_filtered['homeScore'] > UCL_XG_2024_filtered['awayScore']].groupby('homeTeam').size().reset_index(name='home_wins').rename(columns={'homeTeam': 'Team'})
+UCL_XG_2024_away_wins = UCL_XG_2024_filtered[UCL_XG_2024_filtered['awayScore'] > UCL_XG_2024_filtered['homeScore']].groupby('awayTeam').size().reset_index(name='away_wins').rename(columns={'awayTeam': 'Team'})
+UCL_XG_2024_home_losses = UCL_XG_2024_filtered[UCL_XG_2024_filtered['homeScore'] < UCL_XG_2024_filtered['awayScore']].groupby('homeTeam').size().reset_index(name='home_losses').rename(columns={'homeTeam': 'Team'})
+UCL_XG_2024_away_losses = UCL_XG_2024_filtered[UCL_XG_2024_filtered['awayScore'] < UCL_XG_2024_filtered['homeScore']].groupby('awayTeam').size().reset_index(name='away_losses').rename(columns={'awayTeam': 'Team'})
+UCL_XG_2024_home_draws = UCL_XG_2024_filtered[UCL_XG_2024_filtered['homeScore'] == UCL_XG_2024_filtered['awayScore']].groupby('homeTeam').size().reset_index(name='home_draws').rename(columns={'homeTeam': 'Team'})
+UCL_XG_2024_away_draws = UCL_XG_2024_filtered[UCL_XG_2024_filtered['awayScore'] == UCL_XG_2024_filtered['homeScore']].groupby('awayTeam').size().reset_index(name='away_draws').rename(columns={'awayTeam': 'Team'})
+UCL_XG_2024_wld = (UCL_XG_2024_home_wins.merge(UCL_XG_2024_away_wins, on='Team', how='outer')
+                                        .merge(UCL_XG_2024_home_losses, on='Team', how='outer')
+                                        .merge(UCL_XG_2024_away_losses, on='Team', how='outer')
+                                        .merge(UCL_XG_2024_home_draws, on='Team', how='outer')
+                                        .merge(UCL_XG_2024_away_draws, on='Team', how='outer')).fillna(0)
+UCL_XG_2024_wld['wins'] = UCL_XG_2024_wld['home_wins'] + UCL_XG_2024_wld['away_wins']
+UCL_XG_2024_wld['losses'] = UCL_XG_2024_wld['home_losses'] + UCL_XG_2024_wld['away_losses']
+UCL_XG_2024_wld['draws'] = UCL_XG_2024_wld['home_draws'] + UCL_XG_2024_wld['away_draws']
+UCL_XG_2024_wld = UCL_XG_2024_wld[['Team', 'wins', 'losses', 'draws']]
+UCL_2024_totals = UCL_XG_2024_totals.merge(UCL_XG_2024_wld, on='Team', how='outer')
+
+
+```
+
+Grouping the stats to get more stats for UCL 2025
+```{python}
+UCL_League_Scores['matchDate'] = pd.to_datetime(UCL_League_Scores['matchDate'], dayfirst=True)
+UCL_League_Scores_date_new = UCL_League_Scores[UCL_League_Scores['matchDate'] >= '2025-09-05']
+UCL_League_Scores_date_new = UCL_League_Scores_date_new.sort_values(by='matchDate', ascending=False).reset_index(drop=True)
+
+UCL_goals_2025_home = UCL_League_Scores_date_new.groupby('homeTeam')[['FTHG']].sum().reset_index().rename(columns={'homeTeam': 'Team', 'FTHG': 'Goals'})
+UCL_goals_2025_away = UCL_League_Scores_date_new.groupby('awayTeam')[['FTAG']].sum().reset_index().rename(columns={'awayTeam': 'Team', 'FTAG': 'Goals'})
+UCL_goals_2025_totals = pd.merge(UCL_goals_2025_home, UCL_goals_2025_away, on='Team', how='outer')
+UCL_goals_2025_totals['total_goals'] = UCL_goals_2025_totals['Goals_x'].fillna(0) + UCL_goals_2025_totals['Goals_y'].fillna(0)
+UCL_goals_2025_totals = UCL_goals_2025_totals.drop(columns=['Goals_x', 'Goals_y'])
+
+UCL_conceded_2025_home = UCL_League_Scores_date_new.groupby('homeTeam')[['FTAG']].sum().reset_index().rename(columns={'homeTeam': 'Team', 'FTAG': 'c1'})
+UCL_conceded_2025_away = UCL_League_Scores_date_new.groupby('awayTeam')[['FTHG']].sum().reset_index().rename(columns={'awayTeam': 'Team', 'FTHG': 'c2'})
+UCL_conceded_2025 = pd.merge(UCL_conceded_2025_home, UCL_conceded_2025_away, on='Team', how='outer')
+UCL_conceded_2025['total_conceded'] = UCL_conceded_2025['c1'].fillna(0) + UCL_conceded_2025['c2'].fillna(0)
+UCL_conceded_2025 = UCL_conceded_2025.drop(columns=['c1', 'c2'])
+
+UCL_XG_2025['matchDate'] = pd.to_datetime(UCL_XG_2025['matchDate'])
+UCL_XG_2025 = UCL_XG_2025[UCL_XG_2025['matchDate'] >= '2025-09-05']
+UCL_XG_2025_home_totals = UCL_XG_2025.groupby('homeTeam')[['homeXGFT']].sum().reset_index().rename(columns={'homeTeam': 'Team', 'homeXGFT': 'TotalXG'})
+UCL_XG_2025_away_totals = UCL_XG_2025.groupby('awayTeam')[['awayXGFT']].sum().reset_index().rename(columns={'awayTeam': 'Team', 'awayXGFT': 'TotalXG'})
+UCL_XG_2025_totals = pd.merge(UCL_XG_2025_home_totals, UCL_XG_2025_away_totals, on='Team', how='outer')
+UCL_XG_2025_totals['total_xg'] = UCL_XG_2025_totals['TotalXG_x'].fillna(0) + UCL_XG_2025_totals['TotalXG_y'].fillna(0)
+UCL_XG_2025_totals = UCL_XG_2025_totals.drop(columns=['TotalXG_x', 'TotalXG_y'])
+
+UCL_XG_2025_home_xgc = UCL_XG_2025.groupby('homeTeam')[['awayXGFT']].sum().reset_index().rename(columns={'homeTeam': 'Team', 'awayXGFT': 'xgc1'})
+UCL_XG_2025_away_xgc = UCL_XG_2025.groupby('awayTeam')[['homeXGFT']].sum().reset_index().rename(columns={'awayTeam': 'Team', 'homeXGFT': 'xgc2'})
+UCL_XG_2025_xg_conceded = pd.merge(UCL_XG_2025_home_xgc, UCL_XG_2025_away_xgc, on='Team', how='outer')
+UCL_XG_2025_xg_conceded['total_xg_conceded'] = UCL_XG_2025_xg_conceded['xgc1'].fillna(0) + UCL_XG_2025_xg_conceded['xgc2'].fillna(0)
+UCL_XG_2025_xg_conceded = UCL_XG_2025_xg_conceded.drop(columns=['xgc1', 'xgc2'])
+
+UCL_2025_totals = UCL_goals_2025_totals.merge(UCL_conceded_2025, on='Team', how='outer')
+UCL_2025_totals = UCL_2025_totals.merge(UCL_XG_2025_totals, on='Team', how='outer')
+UCL_2025_totals = UCL_2025_totals.merge(UCL_XG_2025_xg_conceded, on='Team', how='outer')
+UCL_2025_totals['xg_diff'] = UCL_2025_totals['total_xg'] - UCL_2025_totals['total_xg_conceded']
+UCL_2025_totals = UCL_2025_totals[UCL_2025_totals['total_xg'] != 0].reset_index(drop=True)
+
+UCL_2025_WL['matchDate'] = pd.to_datetime(UCL_2025_WL['matchDate'], dayfirst=True)
+home_wins = UCL_2025_WL[UCL_2025_WL['FTR'] == 'H'].groupby('homeTeam').size().reset_index(name='home_wins').rename(columns={'homeTeam': 'Team'})
+away_wins = UCL_2025_WL[UCL_2025_WL['FTR'] == 'A'].groupby('awayTeam').size().reset_index(name='away_wins').rename(columns={'awayTeam': 'Team'})
+home_losses = UCL_2025_WL[UCL_2025_WL['FTR'] == 'A'].groupby('homeTeam').size().reset_index(name='home_losses').rename(columns={'homeTeam': 'Team'})
+away_losses = UCL_2025_WL[UCL_2025_WL['FTR'] == 'H'].groupby('awayTeam').size().reset_index(name='away_losses').rename(columns={'awayTeam': 'Team'})
+home_draws = UCL_2025_WL[UCL_2025_WL['FTR'] == 'D'].groupby('homeTeam').size().reset_index(name='home_draws').rename(columns={'homeTeam': 'Team'})
+away_draws = UCL_2025_WL[UCL_2025_WL['FTR'] == 'D'].groupby('awayTeam').size().reset_index(name='away_draws').rename(columns={'awayTeam': 'Team'})
+UCL_wld_2025 = (home_wins.merge(away_wins, on='Team', how='outer')
+                         .merge(home_losses, on='Team', how='outer')
+                         .merge(away_losses, on='Team', how='outer')
+                         .merge(home_draws, on='Team', how='outer')
+                         .merge(away_draws, on='Team', how='outer')).fillna(0)
+UCL_wld_2025['wins'] = UCL_wld_2025['home_wins'] + UCL_wld_2025['away_wins']
+UCL_wld_2025['losses'] = UCL_wld_2025['home_losses'] + UCL_wld_2025['away_losses']
+UCL_wld_2025['draws'] = UCL_wld_2025['home_draws'] + UCL_wld_2025['away_draws']
+UCL_wld_2025 = UCL_wld_2025[['Team', 'wins', 'losses', 'draws']]
+UCL_2025_totals = UCL_2025_totals.merge(UCL_wld_2025, on='Team', how='outer')
+
+
+```
+
+EPL top scorers for the 2023, 2024, and 2025 season
+```{python}
+EPL_scorers_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/EPL_scorers_2023.csv')
+EPL_scorers_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/EPL_scorers_2024.csv')
+EPL_scorers_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/EPL_scorers_2025.csv')
+```
+
+La Liga top scorers for the 2023, 2024, and 2025 season
+```{python}
+LaLiga_scorers_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/LaLiga_scorers_2023.csv')
+LaLiga_scorers_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/LaLiga_scorers_2024.csv')
+LaLiga_scorers_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/LaLiga_scorers_2025.csv')
+```
+
+Bundesliga top scorers for the 2023, 2024, and 2025 season
+```{python}
+Bundesliga_scorers_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Bundesliga_scorers_2023.csv')
+Bundesliga_scorers_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Bundesliga_scorers_2024.csv')
+Bundesliga_scorers_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Bundesliga_scorers_2025.csv')
+```
+
+Serie A top scorers for the 2023, 2024, and 2025 season
+```{python}
+SerieA_scorers_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/SerieA_scorers_2023.csv')
+SerieA_scorers_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/SerieA_scorers_2024.csv')
+SerieA_scorers_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/SerieA_scorers_2025.csv')
+```
+
+Ligue 1 top scorers for the 2023, 2024, and 2025 season
+```{python}
+Ligue1_scorers_2023 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Ligue1_scorers_2023.csv')
+Ligue1_scorers_2024 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Ligue1_scorers_2024.csv')
+Ligue1_scorers_2025 = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Ligue1_scorers_2025.csv')
+```
+
+Fixing the assist columns in order for consistency across all datasets.
+```{python}
+dfs = [EPL_scorers_2023, EPL_scorers_2024, EPL_scorers_2025, LaLiga_scorers_2023,
+        LaLiga_scorers_2024, LaLiga_scorers_2025, Bundesliga_scorers_2023, Bundesliga_scorers_2024,
+        Bundesliga_scorers_2025, SerieA_scorers_2023, SerieA_scorers_2024, SerieA_scorers_2025,
+        Ligue1_scorers_2023, Ligue1_scorers_2024, Ligue1_scorers_2025] 
+
+for i, df in enumerate(dfs):
+    dfs[i] = df.rename(columns={'a': 'assists'})
+
+(EPL_scorers_2023, EPL_scorers_2024, EPL_scorers_2025, LaLiga_scorers_2023,
+        LaLiga_scorers_2024, LaLiga_scorers_2025, Bundesliga_scorers_2023, Bundesliga_scorers_2024,
+        Bundesliga_scorers_2025, SerieA_scorers_2023, SerieA_scorers_2024, SerieA_scorers_2025,
+        Ligue1_scorers_2023, Ligue1_scorers_2024, Ligue1_scorers_2025) = dfs
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+
+
