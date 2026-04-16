@@ -421,33 +421,1081 @@ for i, df in enumerate(dfs):
         Ligue1_scorers_2023, Ligue1_scorers_2024, Ligue1_scorers_2025) = dfs
 ```
 
-```{python}
-
-```
+Top goal scoers and other stats for Turkey's Super Lig, Liga Portugual, and Norway's Eliteserien for the 2023, 2024, and 2025 seasons
 
 ```{python}
+UCL_2023_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/UCL_2023_Stats.csv')
+UCL_2024_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/UCL_2024_Stats.csv')
+UCL_2025_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/UCL_2025_Stats.csv')
 
-```
+Turkey_2023_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/Turkey_2023_Stats.csv')
+Turkey_2024_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/Turkey_2024_Stats.csv')
+Turkey_2025_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/Turkey_2025_Stats.csv')
 
-```{python}
+Portugal_2023_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/Portugal_2023_Stats.csv')
+Portugal_2024_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/Portugal_2024_Stats.csv')
+Portugal_2025_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/Portugal_2025_Stats.csv')
 
-```
-
-```{python}
-
-```
-
-```{python}
-
-```
-
-```{python}
-
-```
-
-```{python}
+Norway_2023_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/Norway_2023_Stats.csv')
+Norway_2024_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/Norway_2024_Stats.csv')
+Norway_2025_Stats = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Stats_JSON/Norway_2025_Stats.csv')
 
 ```
 
 
+Fixing columns and formatting for all of the top scorers datasets. 
 
+```{python}
+dfs = [UCL_2023_Stats, UCL_2024_Stats, UCL_2025_Stats, 
+       Turkey_2023_Stats, Turkey_2024_Stats, Turkey_2025_Stats, 
+       Portugal_2023_Stats, Portugal_2024_Stats, Portugal_2025_Stats, 
+       Norway_2023_Stats, Norway_2024_Stats, Norway_2025_Stats]
+
+desired_cols = ['number', 'player', 'team', 'apps', 'assists', 'min', 'goals', 'xG', 'xA', 'xG90', 'xA90']
+
+for i, df in enumerate(dfs):
+    df = df.rename(columns={
+        'name': 'player',
+        'team_name': 'team',
+        'appearances': 'apps',
+        'mins_played': 'min',
+        'expected_goals': 'xG',
+        'expected_assists': 'xA',
+        'xg_per_90': 'xG90',
+        'xa_per_90': 'xA90',
+    }, errors='ignore')
+    df.insert(0, 'number', range(1, len(df) + 1))
+    available_cols = [col for col in desired_cols if col in df.columns]
+    df = df[available_cols]
+    dfs[i] = df
+
+(UCL_2023_Stats, UCL_2024_Stats, UCL_2025_Stats, 
+ Turkey_2023_Stats, Turkey_2024_Stats, Turkey_2025_Stats, 
+ Portugal_2023_Stats, Portugal_2024_Stats, Portugal_2025_Stats, 
+ Norway_2023_Stats, Norway_2024_Stats, Norway_2025_Stats) = dfs
+
+
+
+```
+
+Using the UEFA club coefficients to get a better understanding of the strength of the teams in the UCL and to use as a feature in the model.
+
+Changing the team names in the UEFA club coefficients dataset to match the team names in the UCL datasets for easier merging later on.
+
+```{python}
+##Changing the team names 
+
+UEFA_club_coefficients = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/uefa_club_coefficients_2026.csv')
+
+uefa_name_map = {
+    'Milan': 'AC Milan',
+    'Atleti': 'Atletico Madrid',
+    'Bayern München': 'Bayern Munich',
+    'B. Dortmund': 'Borussia Dortmund',
+    'Man City': 'Manchester City',
+    'Man Utd': 'Manchester United',
+    'Newcastle': 'Newcastle United',
+    'Paris': 'Paris Saint Germain',
+    'Leipzig': 'RasenBallsport Leipzig',
+    'PSV': 'PSV Eindhoven',
+    'Salzburg': 'Red Bull Salzburg',
+    'Braga': 'SC Braga',
+    'Shakhtar': 'Shakhtar Donetsk',
+    'Leverkusen': 'Bayer Leverkusen',
+    'GNK Dinamo': 'Dinamo Zagreb',
+    'S. Bratislava': 'Slovan Bratislava',
+    'Slavia Praha': 'Slavia Prague',
+    'Stuttgart': 'VfB Stuttgart',
+    'Bodø/Glimt': 'Bodo/Glimt',
+    'Frankfurt': 'Eintracht Frankfurt',
+    'Olympiacos': 'Olympiacos Piraeus',
+    'Qarabağ': 'Qarabag',
+    'Union SG': 'Royale Union SG',
+    'Copenhagen': 'FC Copenhagen',
+    'Porto': 'FC Porto',
+    'Crvena Zvezda': 'FK Crvena Zvezda',
+    'Young Boys': 'BSC Young Boys',
+}
+
+UEFA_club_coefficients['club'] = UEFA_club_coefficients['club'].replace(uefa_name_map)
+
+```
+
+
+Adding season columns and champions column to prep the data. In the years 2023 and 2024, the champions are known so we add it to the dataset. For 2025 we set it to 0 for all teams since the season is still ongoing. 
+```{python}
+
+
+UCL_2023_totals['season'] = 2023
+UCL_2024_totals['season'] = 2024
+UCL_2025_totals['season'] = 2025
+
+UCL_2023_totals['champions'] = UCL_2023_totals['Team'].apply(lambda x: 1 if x == 'Real Madrid' else 0)
+UCL_2024_totals['champions'] = UCL_2024_totals['Team'].apply(lambda x: 1 if x == 'Paris Saint Germain' else 0)
+UCL_2025_totals['champions'] = 0
+```
+
+
+
+```{python}
+ucl_master = pd.concat([UCL_2023_totals, UCL_2024_totals, UCL_2025_totals], ignore_index=True)
+
+ucl_master['matches_played'] = ucl_master['wins'] + ucl_master['losses'] + ucl_master['draws']
+
+name_map = {
+    'Bayern München': 'Bayern Munich',
+    'Atl. Madrid': 'Atletico Madrid',
+    'Dortmund': 'Borussia Dortmund',
+    'PSG': 'Paris Saint Germain',
+    'PSV': 'PSV Eindhoven',
+    'Newcastle': 'Newcastle United',
+    'RB Leipzig': 'RasenBallsport Leipzig',
+    'Ath Bilbao': 'Athletic Club',
+    'Stade Brestois 29': 'Brest',
+    'Club Brugge KV': 'Club Brugge',
+    'Sparta Praha': 'Slavia Prague',
+}
+
+ucl_master['Team'] = ucl_master['Team'].replace(name_map)
+
+```
+
+```{python}
+EPL_understat_2023['season'] = 2023
+EPL_understat_2024['season'] = 2024
+EPL_understat_2025['season'] = 2025
+
+LaLiga_understat_2023['season'] = 2023
+LaLiga_understat_2024['season'] = 2024
+LaLiga_understat_2025['season'] = 2025
+
+Bundesliga_understat_2023['season'] = 2023
+Bundesliga_understat_2024['season'] = 2024
+Bundesliga_understat_2025['season'] = 2025
+
+Serie_A_understat_2023['season'] = 2023
+Serie_A_understat_2024['season'] = 2024
+Serie_A_understat_2025['season'] = 2025
+
+Ligue_1_understat_2023['season'] = 2023
+Ligue_1_understat_2024['season'] = 2024
+Ligue_1_understat_2025['season'] = 2025
+
+Turkey_2023['season'] = 2023
+Turkey_2024['season'] = 2024
+Turkey_2025['season'] = 2025
+
+Portugal_2023['season'] = 2023
+Portugal_2024['season'] = 2024
+Portugal_2025['season'] = 2025
+
+Norway_2023['season'] = 2023
+Norway_2024['season'] = 2024
+Norway_2025['season'] = 2025
+
+
+```
+
+Rename domestic columns to avoid conflicts with UCL columns
+```{python}
+
+domestic = pd.concat([
+    EPL_understat_2023, EPL_understat_2024, EPL_understat_2025,
+    LaLiga_understat_2023, LaLiga_understat_2024, LaLiga_understat_2025,
+    Bundesliga_understat_2023, Bundesliga_understat_2024, Bundesliga_understat_2025,
+    Serie_A_understat_2023, Serie_A_understat_2024, Serie_A_understat_2025,
+    Ligue_1_understat_2023, Ligue_1_understat_2024, Ligue_1_understat_2025,
+    Turkey_2023, Turkey_2024, Turkey_2025,
+    Portugal_2023, Portugal_2024, Portugal_2025,
+    Norway_2023, Norway_2024, Norway_2025
+], ignore_index=True)
+
+
+domestic = domestic.rename(columns={
+    'wins': 'dom_wins',
+    'losses': 'dom_losses',
+    'draws': 'dom_draws',
+    'goals_for': 'dom_goals_for',
+    'goals_conceded': 'dom_goals_conceded',
+    'total_xg': 'dom_xg',
+    'total_xg_conceded': 'dom_xg_conceded',
+    'goal_difference': 'dom_goal_difference',
+    'played': 'dom_played',
+    'points': 'dom_points',
+    'xpts': 'dom_xpts',
+    'rank': 'dom_rank'
+})
+
+```
+
+Now merge to get a master dataframe
+```{python}
+master = ucl_master.merge(
+    domestic,
+    left_on=['Team', 'season'],
+    right_on=['team_name', 'season'],
+    how='left'
+)
+```
+
+Checking unmatched teams
+```{python}
+print(master[master['team_name'].isna()]['Team'].unique())
+master = master.drop(columns=['team_name'])
+```
+
+Merging the UEFA club coefficients dataset to get the coefficents for each team in the UCL dataset
+```{python}
+master = master.merge(
+    UEFA_club_coefficients[['club', 'total_points', 'pts_2023', 'pts_2024', 'pts_2025']],
+    left_on='Team',
+    right_on='club',
+    how='left'
+).drop(columns=['club'])
+
+```
+
+Teams that are not in the UEFA club coefficients dataset will have NaN values for the coefficient columns, so we fill those with 0 since they likely have very low coefficients and it won't affect the model much.
+
+```{python}
+master['pts_2023'] = master['pts_2023'].fillna(0)
+master['pts_2024'] = master['pts_2024'].fillna(0)
+master['pts_2025'] = master['pts_2025'].fillna(0)
+master['total_points'] = master['total_points'].fillna(0)
+
+domestic_cols = ['dom_rank', 'dom_played', 'dom_wins', 'dom_draws', 'dom_losses', 
+                 'dom_goals_for', 'dom_goals_conceded', 'dom_points', 'dom_xg', 
+                 'dom_xg_conceded', 'dom_xpts', 'dom_goal_difference']
+
+master[domestic_cols] = master[domestic_cols].fillna(0)
+
+```
+
+
+Adding season columns into the top scorer datasets for all leagues
+```{python}
+EPL_scorers_2023['season'] = 2023
+EPL_scorers_2024['season'] = 2024
+EPL_scorers_2025['season'] = 2025
+
+LaLiga_scorers_2023['season'] = 2023
+LaLiga_scorers_2024['season'] = 2024
+LaLiga_scorers_2025['season'] = 2025
+
+Bundesliga_scorers_2023['season'] = 2023
+Bundesliga_scorers_2024['season'] = 2024
+Bundesliga_scorers_2025['season'] = 2025
+
+SerieA_scorers_2023['season'] = 2023
+SerieA_scorers_2024['season'] = 2024
+SerieA_scorers_2025['season'] = 2025
+
+Ligue1_scorers_2023['season'] = 2023
+Ligue1_scorers_2024['season'] = 2024
+Ligue1_scorers_2025['season'] = 2025
+
+UCL_2023_Stats['season'] = 2023
+UCL_2024_Stats['season'] = 2024
+UCL_2025_Stats['season'] = 2025
+
+Turkey_2023_Stats['season'] = 2023
+Turkey_2024_Stats['season'] = 2024
+Turkey_2025_Stats['season'] = 2025
+
+Portugal_2023_Stats['season'] = 2023
+Portugal_2024_Stats['season'] = 2024
+Portugal_2025_Stats['season'] = 2025
+
+Norway_2023_Stats['season'] = 2023
+Norway_2024_Stats['season'] = 2024
+Norway_2025_Stats['season'] = 2025
+```
+
+Replacing the column names in the top scorer datasets
+```{python}
+all_player_stats = pd.concat([
+    EPL_scorers_2023, EPL_scorers_2024, EPL_scorers_2025,
+    LaLiga_scorers_2023, LaLiga_scorers_2024, LaLiga_scorers_2025,
+    Bundesliga_scorers_2023, Bundesliga_scorers_2024, Bundesliga_scorers_2025,
+    SerieA_scorers_2023, SerieA_scorers_2024, SerieA_scorers_2025,
+    Ligue1_scorers_2023, Ligue1_scorers_2024, Ligue1_scorers_2025,
+    UCL_2023_Stats, UCL_2024_Stats, UCL_2025_Stats,
+    Turkey_2023_Stats, Turkey_2024_Stats, Turkey_2025_Stats,
+    Portugal_2023_Stats, Portugal_2024_Stats, Portugal_2025_Stats,
+    Norway_2023_Stats, Norway_2024_Stats, Norway_2025_Stats
+], ignore_index=True)
+
+
+team_player_stats = all_player_stats.groupby(['team', 'season']).agg( top_scorer_goals=('goals', 'max'), 
+                                                                     total_player_goals=('goals', 'sum'),
+                                                                     total_assists=('assists', 'sum'),
+                                                                     avg_xG90=('xG90', 'mean'),
+                                                                     top_xG=('xG', 'max'),
+                                                                     top_xA=('xA', 'max'),
+                                                                     avg_xA90=('xA90', 'mean'),).reset_index()
+
+
+team_player_stats['team'] = team_player_stats['team'].replace({'Tottenham Hotspur': 'Tottenham'})
+
+```
+
+
+Re-aggregate to combine the duplicate rows
+```{python}
+
+team_player_stats = team_player_stats.groupby(['team', 'season']).agg(
+    top_scorer_goals=('top_scorer_goals', 'max'),
+    total_player_goals=('total_player_goals', 'sum'),
+    total_assists=('total_assists', 'sum'),
+    avg_xG90=('avg_xG90', 'mean'),
+    top_xG=('top_xG', 'max'),
+    top_xA=('top_xA', 'max'),
+    avg_xA90=('avg_xA90', 'mean'),
+).reset_index()
+
+print(team_player_stats.head())
+```
+
+Merging the player stats into the master dataset
+```{python}
+
+master = master.merge(
+    team_player_stats,
+    left_on=['Team', 'season'],
+    right_on=['team', 'season'],
+    how='left'
+).drop(columns=['team'])
+
+```
+
+
+Checking for any missing values in the player stats columns and filling them with 0 since if a team doesn't have any players in the top scorers list, it likely means they don't have any standout goal scorers and it won't affect the model much.
+```{python}
+
+print(master[master['top_scorer_goals'].isna()][['Team', 'season']])
+
+player_stat_cols = ['top_scorer_goals', 'total_player_goals', 'total_assists', 
+                    'avg_xG90', 'top_xG', 'top_xA', 'avg_xA90']
+
+master[player_stat_cols] = master[player_stat_cols].fillna(0)
+```
+
+
+Check final state of the master dataset
+```{python}
+
+print(master.isnull().sum())
+print(master.shape)
+
+master['ucl_weight'] = master['total_points'] / master['total_points'].max()
+```
+
+
+Scaling up the coefficient features to give them more weight in the model since they are more important feastures when predicitng the UCL. Additionally 2025 has been given more weight since it is the most recent season and likely the most indicative of current team strength.
+
+```{python}
+# Scale up coefficient features
+master['weighted_total_points'] = master['total_points'] * 2
+master['weighted_pts_2025'] = master['pts_2025'] * 3 
+master['weighted_pts_2024'] = master['pts_2024'] * 2
+master['weighted_pts_2023'] = master['pts_2023'] * 1
+```
+
+
+Stack 2023 and 2024 UCL matches
+
+Concating the UCL matches datasets for 2023, 2024, and 2025 to create a master dataset of all UCL matches in those three seasons. This will be used to create the target variable for the model, which is the match outcome (home win, away win, or draw)
+
+```{python}
+
+UCL_matches = pd.concat([UCL_XG_2023, UCL_XG_2024, UCL_XG_2025], ignore_index=True)
+
+UCL_matches['matchDate'] = pd.to_datetime(UCL_matches['matchDate'])
+UCL_matches['season_year'] = UCL_matches['matchDate'].dt.year
+
+```
+
+Creating the target variables for the model. 1 for home win, 0 for away win, and 0.5 for draw. This will be used to train a classification model to predict the outcome of UCL matches.
+```{python}
+
+UCL_matches['result'] = UCL_matches.apply(lambda x: 
+    1 if x['homeScore'] > x['awayScore'] 
+    else (0 if x['homeScore'] < x['awayScore'] 
+    else 0.5), axis=1)
+
+print(UCL_matches.shape)
+print(UCL_matches['result'].value_counts())
+```
+
+This will be the dataset used to train the model, so we need to merge it with the master dataset to get the features for each match. We will merge on the home team and away team, as well as the season year to get the correct features for each match. We will also fill any missing values with 0 since if a team is missing a feature, it likely means they don't have that feature and it won't affect the model much.
+
+```{python}
+UCL_matches_2025 = UCL_matches[UCL_matches['season_year'] == 2025].copy()
+print("2025 matches:", len(UCL_matches_2025))
+
+master['ucl_xg_per_game'] = master['total_xg'] / master['matches_played']
+master['ucl_goals_per_game'] = master['total_goals'] / master['matches_played']
+master['ucl_conceded_per_game'] = master['total_conceded'] / master['matches_played']
+
+# Handle division by zero
+master['ucl_xg_per_game'] = master['ucl_xg_per_game'].fillna(0)
+master['ucl_goals_per_game'] = master['ucl_goals_per_game'].fillna(0)
+master['ucl_conceded_per_game'] = master['ucl_conceded_per_game'].fillna(0)
+match_dataset = UCL_matches.fillna(0)
+```
+
+Making a dataset for the round of 16 teams to analyze and predict their performance in the knockout stages. We will filter the master dataset to only include the teams that made it to the round of 16 in each season, and then merge it with the match dataset to get the features for each match. We will also fill any missing values with 0 since if a team is missing a feature, it likely means they don't have that feature and it won't affect the model much.
+
+```{python}
+
+r16_teams = ['Arsenal', 'Bayern Munich', 'Liverpool', 'Tottenham',
+             'Barcelona', 'Chelsea', 'Sporting CP', 'Manchester City',
+             'Atletico Madrid', 'Newcastle United', 'Bayer Leverkusen',
+             'Bodo/Glimt', 'Atalanta', 'Real Madrid', 
+             'Paris Saint Germain', 'Galatasaray']
+
+master_r16 = master[master['Team'].isin(r16_teams)].reset_index(drop=True)
+```
+
+Making sure all teams have rows for all three seasons in the master_r16 dataset, even if they didn't make it to the round of 16 in a particular season. This is important for the model to learn from the data and not just ignore teams that didn't make it to the round of 16 in a particular season. We will create a dataframe with all combinations of teams and seasons, and then merge it with the master_r16 dataset to fill in any missing rows. We will also fill any missing values with 0 since if a team is missing a feature, it likely means they don't have that feature and it won't affect the model much.
+
+```{python}
+from itertools import product
+
+all_combos = pd.DataFrame(
+    list(product(r16_teams, [2023, 2024, 2025])),
+    columns=['Team', 'season']
+)
+
+master_r16 = all_combos.merge(master_r16, on=['Team', 'season'], how='left')
+master_r16[master_r16.select_dtypes(include='number').columns] = \
+    master_r16.select_dtypes(include='number').fillna(0)
+```
+
+
+Doing a count on how many seasons each team has in the master_r16 dataset.
+```{python}
+print(master_r16.groupby('Team')['season'].count())
+```
+
+
+Uploading the ELO ratings for each team in the UCL and their domestic leagues, as well as their wages and market values to use as features in the model. We will merge these datasets with the master_r16 dataset to get the features for each team in the round of 16. We will also fill any missing values with 0 since if a team is missing a feature, it likely means they don't have that feature and it won't affect the model much.
+
+
+```{python}
+ucl_elo = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/UCL_ELO_seasons.csv')
+domestic_elo = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/elo_by_season.csv')
+wages = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Total_Wages.csv')
+wages['annual_wage'] = wages['annual_wage'].astype(int)
+wages['total_gross'] = wages['total_gross'].astype(int)
+market_value = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/Full_Market_Values.csv', index_col=0)
+```
+
+
+Renaming columns in the ELO datasets to match the master_r16 dataset for easier merging later on. Also replacing some team names in the UCL ELO dataset to match the team names in the master_r16 dataset for easier merging later on.
+
+```{python}
+
+domestic_elo = domestic_elo.rename(columns={'team': 'Team', 'elo': 'domestic_elo'})
+ucl_elo = ucl_elo.rename(columns={'teams': 'Team', 'elo': 'ucl_elo'})
+ucl_elo['Team'] = ucl_elo['Team'].replace({
+    'Newcastle': 'Newcastle United',
+    'PSG': 'Paris Saint Germain',
+    'Atl. Madrid': 'Atletico Madrid',
+    'Dortmund': 'Borussia Dortmund',
+})
+
+```
+
+
+Renaming columns in the wages and market value datasets to match the master_r16 dataset for easier merging later on. Also replacing some team names in the wages and market value datasets to match the team names in the master_r16 dataset for easier merging later on.
+
+```{python}
+wages = wages.rename(columns = {'team': 'Team'})
+market_value = market_value.rename(columns = {'team': 'Team'})
+
+
+team_features = domestic_elo.merge(ucl_elo, on=['Team', 'season'], how='inner')
+team_features = team_features.merge(wages[['Team', 'season', 'total_gross']], on=['Team', 'season'], how='left')
+team_features = team_features.merge(market_value[['Team', 'season', 'player_market_value_euro']], on=['Team', 'season'], how='left')
+team_features = team_features.dropna(subset=['total_gross']).reset_index(drop=True)
+
+print(team_features.columns.tolist())
+print(team_features.shape)
+print(team_features.head())
+```
+
+Here we merge the team features into the master_r16 dataset to get the ELO ratings, wages, and market values for each team in the round of 16. We will also fill any missing values with 0 since if a team is missing a feature, it likely means they don't have that feature and it won't affect the model much. We will also drop any duplicate rows that may have been created during the merge process.
+
+```{python}
+master_r16 = master_r16.merge(team_features, on='Team', how='left')
+master_r16 = master_r16.drop_duplicates(subset=['Team', 'season_x']).reset_index(drop=True)
+
+print(master_r16[['domestic_elo', 'ucl_elo', 'total_gross', 'player_market_value_euro']].isna().sum())
+master_r16['player_market_value_euro'] =master_r16['player_market_value_euro'].fillna(0).astype(int)
+master_r16['domestic_elo'] = master_r16['domestic_elo'].fillna(0).astype(int)
+master_r16['ucl_elo'] = master_r16['ucl_elo'].fillna(0).astype(int)
+master_r16['total_gross'] = master_r16['total_gross'].fillna(0).astype(int)
+
+master_r16 = master_r16.drop(columns=['season_y'])
+master_r16 = master_r16.rename(columns={'season_x': 'season'})
+
+```
+
+
+Some teams that made it to the round of 16 in 2023 and 2024 didn't make it to the round of 16 in the other season, so they won't have ELO ratings for that season. We will fill those missing ELO ratings with a low value (e.g. 1400) since those teams likely have lower ELO ratings than the teams that made it to the round of 16 in both seasons.
+```{python}
+
+no_ucl_2023 = ['Liverpool', 'Tottenham', 'Chelsea', 'Bodo/Glimt', 'Atalanta', 'Bayer Leverkusen']
+no_ucl_2024 = ['Tottenham', 'Chelsea', 'Bodo/Glimt', 'Galatasaray', 'Newcastle United']
+
+master_r16.loc[(master_r16['Team'].isin(no_ucl_2023)) & (master_r16['season'] == 2023), 'ucl_elo'] = 1400
+master_r16.loc[(master_r16['Team'].isin(no_ucl_2024)) & (master_r16['season'] == 2024), 'ucl_elo'] = 1400
+print("master_r16 shape after dedup:", master_r16.shape)
+```
+
+Reading in the wins and losses datasets for the UCL matches in 2023, 2024, and 2025 to create a master dataset of all UCL matches in those three seasons with the match outcome as the target variable for the model. We will merge this dataset with the master_r16 dataset to get the features for each match. We will also fill any missing values with 0 since if a team is missing a feature, it likely means they don't have that feature and it won't affect the model much.
+
+```{python}
+UCL_2025_WL = pd.read_csv('~/Documents/Personal_Projects/CSV_Files/UCL_2025_Wins_and_Losses.csv')
+UCL_2024_WL = UCL_XG_2024.copy()
+UCL_2023_WL = UCL_XG_2023.copy()
+
+UCL_2023_WL = UCL_2023_WL.drop(columns=['match_id', 'homeXG', 'awayXG', 'season_year'], axis=1)
+UCL_2024_WL = UCL_2024_WL.drop(columns=['match_id', 'homeXG', 'awayXG', 'season_year'], axis=1)
+
+UCL_2023_WL['result'] = np.select( [UCL_2023_WL['homeScore'] > UCL_2023_WL['awayScore'], UCL_2023_WL['awayScore'] > UCL_2023_WL['homeScore']], 
+                                  ['H', 'A'], default='D')
+
+UCL_2024_WL['result'] = np.select([UCL_2024_WL['homeScore'] > UCL_2024_WL['awayScore'], UCL_2024_WL['awayScore'] > UCL_2024_WL['homeScore']],
+    ['H', 'A'], default='D')
+
+UCL_2025_WL = UCL_2025_WL.drop(columns=['id', 'Country', 'League', 'referee'], axis = 1)
+UCL_2025_WL = UCL_2025_WL.rename(columns={'FTHG': 'homeScore', 'FTAG': 'awayScore', 'FTR': 'result', 'Season': 'season_year'}, errors='ignore')
+
+```
+
+
+Adding Season column to the wins and losses datasets and concatenating them to create a master dataset of all UCL matches in those three seasons with the match outcome as the target variable for the model. 
+```{python}
+UCL_2023_WL['Season'] = 2023
+UCL_2024_WL['Season'] = 2024
+UCL_2025_WL['Season'] = 2025
+
+UCL_2025_WL = pd.concat([UCL_2023_WL, UCL_2024_WL, UCL_2025_WL], ignore_index=True).reset_index(drop=True)
+
+```
+
+Fixing the team names in the UCL matches dataset to match the team names in the master_r16 dataset for easier merging later on. We will replace any team names that don't match with the corresponding team names in the master_r16 dataset.
+
+```{python}
+name_map = {
+    'Atl. Madrid': 'Atletico Madrid',
+    'PSG':         'Paris Saint Germain',
+    'Newcastle':   'Newcastle United',}
+
+
+UCL_2025_WL['homeTeam'] = UCL_2025_WL['homeTeam'].replace(name_map)
+UCL_2025_WL['awayTeam'] = UCL_2025_WL['awayTeam'].replace(name_map)
+```
+
+
+Cleaning and merging the datasets to create the final dataset for modeling. We will pivot the master_r16 dataset to get the features for each team in each season, and then merge it with the UCL matches dataset to get the features for each match.
+
+```{python}
+drop_cols = ['Unnamed: 0', 'champions', 'ucl_weight']
+stat_cols = [c for c in master_r16.columns if c not in drop_cols + ['Team', 'season']]
+
+pivoted = master_r16.pivot(index='Team', columns='season', values=stat_cols).reset_index()
+pivoted.columns = [f'{stat}_{yr}' if yr != '' else stat for stat, yr in pivoted.columns]
+pivoted = pivoted.reset_index()
+all_stat_cols = [c for c in pivoted.columns if c != 'Team']
+```
+
+Renaming the columns in the pivoted dataset to match the home team and away team columns in the UCL matches dataset for easier merging later on. We will also add a prefix to the column names to indicate whether they are for the home team or the away team.
+
+```{python}
+home_stats = pivoted.rename(columns={'Team': 'homeTeam'})
+home_stats = home_stats.rename(columns={c: f'homeTeam_{c}' for c in all_stat_cols})
+
+
+away_stats = pivoted.rename(columns={'Team': 'awayTeam'})
+away_stats = away_stats.rename(columns={c: f'awayTeam_{c}' for c in all_stat_cols})
+
+merged = UCL_2025_WL.merge(home_stats, on='homeTeam', how='left')
+merged = merged.merge(away_stats, on='awayTeam', how='left')
+
+```
+
+Here are all the variables that will be used in the model. We will fill any missing values with 0 since if a team is missing a feature.
+```{python}
+float_to_int_cols = [
+    'homeTeam_total_goals_2023', 'homeTeam_total_goals_2024', 'homeTeam_total_goals_2025',
+    'homeTeam_total_conceded_2023', 'homeTeam_total_conceded_2024', 'homeTeam_total_conceded_2025',
+    'homeTeam_wins_2023', 'homeTeam_wins_2024', 'homeTeam_wins_2025',
+    'homeTeam_losses_2023', 'homeTeam_losses_2024', 'homeTeam_losses_2025',
+    'homeTeam_draws_2023', 'homeTeam_draws_2024', 'homeTeam_draws_2025',
+    'homeTeam_matches_played_2023', 'homeTeam_matches_played_2024', 'homeTeam_matches_played_2025',
+    'homeTeam_dom_rank_2023', 'homeTeam_dom_rank_2024', 'homeTeam_dom_rank_2025',
+    'homeTeam_dom_played_2023', 'homeTeam_dom_played_2024', 'homeTeam_dom_played_2025',
+    'homeTeam_dom_wins_2023', 'homeTeam_dom_wins_2024', 'homeTeam_dom_wins_2025',
+    'homeTeam_dom_draws_2023', 'homeTeam_dom_draws_2024', 'homeTeam_dom_draws_2025',
+    'homeTeam_dom_losses_2023', 'homeTeam_dom_losses_2024', 'homeTeam_dom_losses_2025',
+    'homeTeam_dom_goals_for_2023', 'homeTeam_dom_goals_for_2024', 'homeTeam_dom_goals_for_2025',
+    'homeTeam_dom_goals_conceded_2023', 'homeTeam_dom_goals_conceded_2024', 'homeTeam_dom_goals_conceded_2025',
+    'homeTeam_dom_points_2023', 'homeTeam_dom_points_2024', 'homeTeam_dom_points_2025',
+    'homeTeam_dom_goal_difference_2023', 'homeTeam_dom_goal_difference_2024', 'homeTeam_dom_goal_difference_2025',
+    'homeTeam_top_scorer_goals_2023', 'homeTeam_top_scorer_goals_2024', 'homeTeam_top_scorer_goals_2025',
+    'homeTeam_total_player_goals_2023', 'homeTeam_total_player_goals_2024', 'homeTeam_total_player_goals_2025',
+    'homeTeam_total_assists_2023', 'homeTeam_total_assists_2024', 'homeTeam_total_assists_2025',
+    'homeTeam_domestic_elo_2023', 'homeTeam_domestic_elo_2024', 'homeTeam_domestic_elo_2025',
+    'homeTeam_ucl_elo_2023', 'homeTeam_ucl_elo_2024', 'homeTeam_ucl_elo_2025',
+    'homeTeam_total_gross_2023', 'homeTeam_total_gross_2024', 'homeTeam_total_gross_2025',
+    'homeTeam_player_market_value_euro_2023', 'homeTeam_player_market_value_euro_2024', 'homeTeam_player_market_value_euro_2025',
+    'awayTeam_total_goals_2023', 'awayTeam_total_goals_2024', 'awayTeam_total_goals_2025',
+    'awayTeam_total_conceded_2023', 'awayTeam_total_conceded_2024', 'awayTeam_total_conceded_2025',
+    'awayTeam_wins_2023', 'awayTeam_wins_2024', 'awayTeam_wins_2025',
+    'awayTeam_losses_2023', 'awayTeam_losses_2024', 'awayTeam_losses_2025',
+    'awayTeam_draws_2023', 'awayTeam_draws_2024', 'awayTeam_draws_2025',
+    'awayTeam_matches_played_2023', 'awayTeam_matches_played_2024', 'awayTeam_matches_played_2025',
+    'awayTeam_dom_rank_2023', 'awayTeam_dom_rank_2024', 'awayTeam_dom_rank_2025',
+    'awayTeam_dom_played_2023', 'awayTeam_dom_played_2024', 'awayTeam_dom_played_2025',
+    'awayTeam_dom_wins_2023', 'awayTeam_dom_wins_2024', 'awayTeam_dom_wins_2025',
+    'awayTeam_dom_draws_2023', 'awayTeam_dom_draws_2024', 'awayTeam_dom_draws_2025',
+    'awayTeam_dom_losses_2023', 'awayTeam_dom_losses_2024', 'awayTeam_dom_losses_2025',
+    'awayTeam_dom_goals_for_2023', 'awayTeam_dom_goals_for_2024', 'awayTeam_dom_goals_for_2025',
+    'awayTeam_dom_goals_conceded_2023', 'awayTeam_dom_goals_conceded_2024', 'awayTeam_dom_goals_conceded_2025',
+    'awayTeam_dom_points_2023', 'awayTeam_dom_points_2024', 'awayTeam_dom_points_2025',
+    'awayTeam_dom_goal_difference_2023', 'awayTeam_dom_goal_difference_2024', 'awayTeam_dom_goal_difference_2025',
+    'awayTeam_top_scorer_goals_2023', 'awayTeam_top_scorer_goals_2024', 'awayTeam_top_scorer_goals_2025',
+    'awayTeam_total_player_goals_2023', 'awayTeam_total_player_goals_2024', 'awayTeam_total_player_goals_2025',
+    'awayTeam_total_assists_2023', 'awayTeam_total_assists_2024', 'awayTeam_total_assists_2025',
+    'awayTeam_domestic_elo_2023', 'awayTeam_domestic_elo_2024', 'awayTeam_domestic_elo_2025',
+    'awayTeam_ucl_elo_2023', 'awayTeam_ucl_elo_2024', 'awayTeam_ucl_elo_2025',
+    'awayTeam_total_gross_2023', 'awayTeam_total_gross_2024', 'awayTeam_total_gross_2025',
+    'awayTeam_player_market_value_euro_2023', 'awayTeam_player_market_value_euro_2024', 'awayTeam_player_market_value_euro_2025',
+]
+
+merged[float_to_int_cols] = merged[float_to_int_cols].fillna(0).astype(int)
+```
+
+This code block creates new features for the model by calculating the difference between the home team and away team stats for each stat and each season. This will allow the model to learn from the relative strength of the teams rather than just their absolute stats, which is more important when predicting match outcomes.
+
+```{python}
+base_stats = [col.replace('homeTeam_', '').replace('_2023', '').replace('_2024', '').replace('_2025', '')
+              for col in merged.columns if col.startswith('homeTeam_') and col.endswith('_2023')]
+base_stats = list(set(base_stats))
+
+for stat in base_stats:
+    for yr in [2023, 2024, 2025]:
+        h = f'homeTeam_{stat}_{yr}'
+        a = f'awayTeam_{stat}_{yr}'
+        if h in merged.columns and a in merged.columns:
+            merged[f'diff_{stat}_{yr}'] = merged[h] - merged[a]
+```
+
+This code block creates the target variable for the model by encoding the match outcome as 1 for home win, 0 for draw, and -1 for away win. This will be used to train a classification model to predict the outcome of UCL matches.
+
+```{python}
+diff_cols = [c for c in merged.columns if c.startswith('diff_')]
+
+merged['result_enc'] = merged['result'].map({'H': 1, 'D': 0, 'A': -1})
+
+```
+
+Fill in missing values in the diff columns with 0 since if a team is missing a feature. We will also create the X and y datasets for modeling, where X will be the diff columns and y will be the encoded match outcome.
+
+```{python}
+X = merged[diff_cols].fillna(0)
+y = merged['result_enc'] = merged['result'].map({'A': 0, 'D': 1, 'H': 2})
+
+mask = merged['result_enc'].notna()
+X = X[mask]
+y = y[mask]
+```
+
+Splitting the dataset into training and testing sets, with 75% of the data used for training and 25% for testing. We will also set a random state for reproducibility.
+```{python}
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+```
+
+Modeling the data with the logestic regression to see how well it performs, and then we will try some other models to see if we can improve the performance. We will also scale the features using StandardScaler since the features are on different scales and this will help the model learn better.
+
+```{python}
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+model = LogisticRegression(max_iter=1000, C=0.1, solver='lbfgs')
+model.fit(X_train, y_train)
+
+predictions = model.predict(X_test)
+probabilities = model.predict_proba(X_test)
+
+print(accuracy_score(y_test, predictions))
+print(classification_report(y_test, predictions, target_names=['Away', 'Draw', 'Home']))
+```
+
+Now we will use a random forest classifier to see if we can improve the performance of the model. 
+
+```{python}
+rf = RandomForestClassifier(n_estimators=200, random_state=42)
+rf.fit(X_train, y_train)
+
+rf_predictions = rf.predict(X_test)
+rf_probabilities = rf.predict_proba(X_test)
+
+print(accuracy_score(y_test, rf_predictions))
+print(classification_report(y_test, rf_predictions, target_names=['Away', 'Draw', 'Home']))
+
+```
+
+
+Now we will use a XGboost classifier to see if we can improve the performance of the model. 
+
+```{python}
+xgb_model = xgb.XGBClassifier(n_estimators=200, eval_metric='mlogloss', random_state=42)
+xgb_model.fit(X_train, y_train)
+
+xgb_predictions = xgb_model.predict(X_test)
+xgb_probabilities = xgb_model.predict_proba(X_test)
+
+print(accuracy_score(y_test, xgb_predictions))
+print(classification_report(y_test, xgb_predictions, target_names=['Away', 'Draw', 'Home']))
+
+
+```
+
+We are now using elastic net regularization with logistic regression to see if we can improve the performance of the model. This will help to prevent overfitting and improve the generalization of the model.
+
+```{python}
+en = LogisticRegression(penalty='elasticnet', solver='saga', l1_ratio=0.5, max_iter=2000, C=0.1)
+en.fit(X_train, y_train)
+
+en_predictions = en.predict(X_test)
+en_probabilities = en.predict_proba(X_test)
+
+print(accuracy_score(y_test, en_predictions))
+print(classification_report(y_test, en_predictions, target_names=['Away', 'Draw', 'Home']))
+
+```
+
+Now I am stacking the models together using a StackingClassifier to see if we can improve the performance of the model by combining the predictions of the different models. We will use logistic regression as the final estimator to combine the predictions of the base models.
+
+```{python}
+
+stack = StackingClassifier(
+    estimators=[('lr', model), ('rf', rf), ('xgb', xgb_model), ('en', en)],
+    final_estimator=LogisticRegression(max_iter=1000, C=0.1),
+    passthrough=False,
+    cv=5
+)
+stack.fit(X_train, y_train)
+
+stack_predictions = stack.predict(X_test)
+stack_probabilities = stack.predict_proba(X_test)
+
+print(accuracy_score(y_test, stack_predictions))
+print(classification_report(y_test, stack_predictions, target_names=['Away', 'Draw', 'Home']))
+
+```
+
+Now that we did some modeling we will use that data to simulate the knockout stages of the UCL using a Monte Carlo simulation. We will use the probabilities predicted by the model to simulate the outcomes of the matches in the knockout stages, and then we will repeat this process many times to get a distribution of outcomes for each team in the knockout stages.
+
+```{python}
+r16_fixtures = [
+    ('Paris Saint Germain', 'Chelsea'),       
+    ('Galatasaray', 'Liverpool'),              
+    ('Real Madrid', 'Manchester City'),        
+    ('Atalanta', 'Bayern Munich'),             
+    ('Newcastle United', 'Barcelona'),         
+    ('Atletico Madrid', 'Tottenham'),         
+    ('Bodo/Glimt', 'Sporting CP'),            
+    ('Bayer Leverkusen', 'Arsenal'),          
+]
+qf_bracket = [(0,1), (2,3), (4,5), (6,7)]
+sf_bracket  = [(0,1), (2,3)] 
+
+
+```
+
+Getting 10000 simulations of each match in the knockout stages to get a distribution of outcomes for each team in the knockout stages. We will use the probabilities predicted by the model to simulate the outcomes of the matches, and then we will repeat this process many times to get a distribution of outcomes for each team in the knockout stages.
+
+```{python}
+N_SIMS = 10000
+def get_match_features(home, away, diff_cols, scaler):
+    home_row = home_stats[home_stats['homeTeam'] == home]
+    away_row  = away_stats[away_stats['awayTeam'] == away]
+    
+    row = {}
+    for col in diff_cols:
+        stat = col.replace('diff_', '')
+        h_col = f'homeTeam_{stat}'
+        a_col = f'awayTeam_{stat}'
+        h_val = home_row[h_col].values[0] if h_col in home_row.columns and len(home_row) > 0 else 0
+        a_val = away_row[a_col].values[0] if a_col in away_row.columns and len(away_row) > 0 else 0
+        row[col] = h_val - a_val
+    
+    X_pred = pd.DataFrame([row])[diff_cols].fillna(0)
+    return scaler.transform(X_pred)
+```
+
+Here we define a function to simulate a tie between two teams using the probabilities predicted by the model. We will simulate the outcomes of the matches in the knockout stages, and then we will repeat this process many times to get a distribution of outcomes for each team in the knockout stages.
+
+```{python}
+def simulate_tie(home, away, model, diff_cols, scaler, n_sims=1):
+    X_leg1 = get_match_features(home, away, diff_cols, scaler)
+    p_leg1 = model.predict_proba(X_leg1)[0]
+
+    X_leg2 = get_match_features(away, home, diff_cols, scaler)
+    p_leg2 = model.predict_proba(X_leg2)[0]
+
+    home_advances = 0
+    for _ in range(n_sims):
+        r1 = np.random.choice([0, 1, 2], p=p_leg1)
+        if r1 == 2:   h1, a1 = np.random.poisson(1.8), np.random.poisson(0.9)
+        elif r1 == 1: h1 = a1 = np.random.poisson(1.0)
+        else:         h1, a1 = np.random.poisson(0.9), np.random.poisson(1.8)
+
+        r2 = np.random.choice([0, 1, 2], p=p_leg2)
+        if r2 == 2:   h2, a2 = np.random.poisson(1.8), np.random.poisson(0.9)
+        elif r2 == 1: h2 = a2 = np.random.poisson(1.0)
+        else:         h2, a2 = np.random.poisson(0.9), np.random.poisson(1.8)
+
+        home_agg = h1 + a2
+        away_agg = a1 + h2
+
+        if home_agg > away_agg:
+            home_advances += 1
+        elif home_agg < away_agg:
+            pass
+        else:
+            home_advances += np.random.randint(0, 2)
+
+    return home_advances / n_sims
+
+```
+
+Here we define a function to simulate the entire tournament using the simulate_tie function to simulate each match in the knockout stages. We will repeat this process many times to get a distribution of outcomes for each team in the knockout stages, and then we will print the probabilities of each team advancing to each round and winning the tournament.
+
+```{python}
+def simulate_tournament(fixtures, qf_bracket, sf_bracket, model, diff_cols, scaler, n_sims=10_000):
+    all_teams = [team for pair in fixtures for team in pair]
+    
+    r16_count    = {team: 0 for team in all_teams}
+    qf_count     = {team: 0 for team in all_teams}
+    sf_count     = {team: 0 for team in all_teams}
+    final_count  = {team: 0 for team in all_teams}
+    trophy_count = {team: 0 for team in all_teams}
+
+    for _ in range(n_sims):
+        r16_winners = []
+        for home, away in fixtures:
+            p_home = simulate_tie(home, away, model, diff_cols, scaler)
+            winner = home if np.random.random() < p_home else away
+            r16_winners.append(winner)
+            r16_count[winner] += 1
+
+        qf_winners = []
+        for i, j in qf_bracket:
+            home, away = r16_winners[i], r16_winners[j]
+            p_home = simulate_tie(home, away, model, diff_cols, scaler)
+            winner = home if np.random.random() < p_home else away
+            qf_winners.append(winner)
+            qf_count[winner] += 1
+
+        sf_winners = []
+        for i, j in sf_bracket:
+            home, away = qf_winners[i], qf_winners[j]
+            p_home = simulate_tie(home, away, model, diff_cols, scaler)
+            winner = home if np.random.random() < p_home else away
+            sf_winners.append(winner)
+            sf_count[winner] += 1
+
+        home, away = sf_winners[0], sf_winners[1]
+        p_home = simulate_tie(home, away, model, diff_cols, scaler)
+        champion = home if np.random.random() < p_home else away
+        final_count[champion] += 1
+        trophy_count[champion] += 1
+
+    def print_round(label, counts, denom):
+        print(f"\n=== {label} ===\n")
+        for team, count in sorted(counts.items(), key=lambda x: x[1], reverse=True):
+            print(f"{team:30s} {count/denom:.1%}")
+
+    print_round("R16 Advancement %",  r16_count,    n_sims)
+    print_round("Quarter Final %",    qf_count,     n_sims)
+    print_round("Semi Final %",       sf_count,     n_sims)
+    print_round("Final %",            final_count,  n_sims)
+    print_round("UCL Win %",          trophy_count, n_sims)
+
+    return trophy_count, r16_count, qf_count, sf_count, final_count
+
+
+results, r16_count, qf_count, sf_count, final_count = simulate_tournament(
+    r16_fixtures, qf_bracket, sf_bracket, en, diff_cols, scaler
+)
+
+```
+
+Here we create a DataFrame to display the probabilities of each team advancing to each round and winning the tournament in a tabular format. We will also sort the DataFrame by the UCL Win % column in descending order to see which teams have the highest probability of winning the tournament.
+
+```{python}
+rounds = {
+    'R16':           r16_count,
+    'Quarter Final': qf_count,
+    'Semi Final':    sf_count,
+    'Final':         final_count,
+    'UCL Win':       results,
+}
+
+n_sims = 10000
+
+df_rounds = pd.DataFrame({
+    round_name: {team: count / n_sims for team, count in counts.items()}
+    for round_name, counts in rounds.items()
+})
+
+df_rounds = df_rounds.sort_values('UCL Win', ascending=False)
+
+print(df_rounds.to_string(float_format=lambda x: f"{x:.1%}"))
+
+
+```
+
+This is a heatmap to visualize the probabilities of each team advancing to each round and winning the tournament. The heatmap will show the probabilities in a color gradient, with higher probabilities in darker colors and lower probabilities in lighter colors. This will allow us to easily see which teams have the highest probabilities of advancing to each round and winning the tournament. We will also annotate the heatmap with the exact probabilities for each team and round.
+
+```{python}
+import seaborn as sns
+
+fig, ax = plt.subplots(figsize=(10, 8))
+
+sns.heatmap(
+    df_rounds,
+    annot=True,
+    fmt='.1%',
+    cmap='YlOrRd',
+    linewidths=0.5,
+    ax=ax,
+    cbar_kws={'format': '%.0%%'}
+)
+
+ax.set_title('UCL 2025/26 Tournament Progression Probabilities', fontsize=14, pad=15)
+ax.set_xlabel('')
+ax.set_ylabel('')
+plt.xticks(rotation=30, ha='right')
+plt.yticks(rotation=0)
+plt.tight_layout()
+plt.show()
+```
+
+Now that we are in the Semi Final phase of the tourament we can look at the probabilities of each team winning the tournament if they make it to the final, and we can also look at the probabilities of each team winning the tournament if they face each other in the final. This will give us a better idea of which teams have the best chances of winning the tournament based on their potential matchups in the final.
+
+We will include Real Madrid since they were in the Top 5 and had the short end of the stick when it came to the side of the bracket they were placed.
+
+
+```{python}
+side_a = ['Bayern Munich', 'Paris Saint Germain', 'Real Madrid']
+side_b = ['Arsenal', 'Atletico Madrid']
+
+N_SIMS = 10_000
+
+print("\n=== UCL Final Scenarios ===\n")
+
+h2h_matrix = pd.DataFrame(index=side_a, columns=side_b, dtype=float)
+
+for team1 in side_a:
+    for team2 in side_b:
+        win_count = {team1: 0, team2: 0}
+
+        for _ in range(N_SIMS):
+            p = simulate_tie(team1, team2, en, diff_cols, scaler)
+            winner = team1 if np.random.random() < p else team2
+            win_count[winner] += 1
+
+        p1 = win_count[team1] / N_SIMS
+        p2 = win_count[team2] / N_SIMS
+        h2h_matrix.loc[team1, team2] = p1
+
+        print(f"{team1} vs {team2}")
+        print(f"  {team1:<25} {p1:.1%}")
+        print(f"  {team2:<25} {p2:.1%}")
+        print()
+```
+
+Here we create a heatmap to visualize the head-to-head probabilities of each team winning the tournament if they face each other in the final. 
+```{python}
+fig, ax = plt.subplots(figsize=(7, 5))
+sns.heatmap(
+    h2h_matrix.astype(float),
+    annot=True,
+    fmt='.1%',
+    cmap='YlOrRd',
+    linewidths=0.5,
+    ax=ax,
+    vmin=0,
+    vmax=1,
+    cbar_kws={'format': '%.0%%'}
+)
+ax.set_title('UCL Final Win Probabilities\n(Row team win % vs column opponent)', fontsize=12, pad=15)
+ax.set_xlabel('')
+ax.set_ylabel('')
+plt.xticks(rotation=30, ha='right')
+plt.yticks(rotation=0)
+plt.tight_layout()
+plt.show()
+```
+
+The actual semi final matchups below. 
+
+```{python}
+side_a = ['Bayern Munich', 'Paris Saint Germain']
+side_b = ['Arsenal', 'Atletico Madrid']
+
+N_SIMS = 10_000
+
+print("\n=== UCL Final Scenarios ===\n")
+
+h2h_matrix = pd.DataFrame(index=side_a, columns=side_b, dtype=float)
+
+for team1 in side_a:
+    for team2 in side_b:
+        win_count = {team1: 0, team2: 0}
+
+        for _ in range(N_SIMS):
+            p = simulate_tie(team1, team2, en, diff_cols, scaler)
+            winner = team1 if np.random.random() < p else team2
+            win_count[winner] += 1
+
+        p1 = win_count[team1] / N_SIMS
+        p2 = win_count[team2] / N_SIMS
+        h2h_matrix.loc[team1, team2] = p1
+
+        print(f"{team1} vs {team2}")
+        print(f"  {team1:<25} {p1:.1%}")
+        print(f"  {team2:<25} {p2:.1%}")
+        print()
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(7, 5))
+sns.heatmap(
+    h2h_matrix.astype(float),
+    annot=True,
+    fmt='.1%',
+    cmap='YlOrRd',
+    linewidths=0.5,
+    ax=ax,
+    vmin=0,
+    vmax=1,
+    cbar_kws={'format': '%.0%%'}
+)
+ax.set_title('UCL Final Win Probabilities\n(Row team win % vs column opponent)', fontsize=12, pad=15)
+ax.set_xlabel('')
+ax.set_ylabel('')
+plt.xticks(rotation=30, ha='right')
+plt.yticks(rotation=0)
+plt.tight_layout()
+plt.show()
+```
